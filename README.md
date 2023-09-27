@@ -1,1 +1,1 @@
-##Discord Proximity Chat Browser Extension
+## Discord Proximity Chat Browser Extension

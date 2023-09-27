@@ -1,6 +1,7 @@
 console.log("initializing user positions");
 
 const AVATAR_RADIUS = 12;
+const SILENT_DISTANCE = 300;
 const BG_COLOR = "teal";
 const TAU = 2 * Math.PI;
 
@@ -14,13 +15,15 @@ let mouse_input = {
 	was_down: false
 };
 let avatar_dragging = null;
+let avatar_client_user = null;
 let next_x = AVATAR_RADIUS + 10;
+let ready_to_send_messages = false;
 
 let avatars = [
 	// TEMPORARY
 	Avatar(-1, "Old Johnson", "", 300, 320, false),
 	Avatar(-1, "Wendell T", "", 100, 100, false),
-	Avatar(-1, "Jerder Johnson", "", 150, 250, false),
+	Avatar(-1, "Jerden Vanderbilt", "", 150, 250, false),
 ];
 
 canvas.addEventListener("mousemove", function(e) {
@@ -63,6 +66,11 @@ function Avatar(id, username, image_url, x, y, is_client_user) {
 	image.onload = () => avatar.image_loaded = true;
 	image.crossorigin = "anonymous";
 	image.src = image_url;
+
+	if (is_client_user) {
+		avatar_client_user = avatar;
+	}
+
 	return avatar;
 }
 
@@ -95,6 +103,23 @@ function update(ts) {
 			avatar_dragging = hovered_avatar;
 		}
 	} else if (mouse_released) {
+		if (avatar_dragging && avatar_dragging != avatar_client_user && ready_to_send_messages) {
+			let dist = distance(avatar_dragging.pos, avatar_client_user.pos);
+
+			let inverse_volume = dist / SILENT_DISTANCE;
+			if (inverse_volume > 1) inverse_volume = 1;
+			let volume = 1 - inverse_volume;
+
+			browser.tabs.query({ currentWindow: true, active: true })
+			.then(tabs => {
+				browser.tabs.sendMessage(tabs[0].id, {
+					command: "set_user_volume",
+					id: 0,
+					volume: volume,
+				});
+			})
+		}
+
 		avatar_dragging = null;
 	}
 
@@ -164,4 +189,5 @@ browser.runtime.onMessage.addListener((message, sender, respond) => {
 
 
 browser.tabs.executeScript({file: "/discord_controller.js"})
+	.then(() => ready_to_send_messages = true)
 	.catch(console.error);

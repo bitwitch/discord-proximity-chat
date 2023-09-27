@@ -1,0 +1,36 @@
+
+
+The scope of the idea for the jam is to create a browser extension that is able
+to control the volume of other users in a voice channel in the browser version
+of the discord client. The UI for this is a 2d square with all voice users
+displayed as little circles and the user can drag them around. Volume is related
+to distance from the user's circle.
+
+
+
+How to control users volume from the browser extension
+---
+- The volume slider for each voice user can be accessed by right clicking on the
+	user in the voice channel list. This opens a context menu that has a volume
+	slider that the user can click and drag to control volume.
+
+- I discovered that the volume slider can also be controlled via keyboard, if
+  the slider is being focused. So I was able to dispatch keydown events for
+	the arrow keys on this element from the browser extension to control the
+	volume.
+
+- Unfortunately the volume slider only exists in the DOM if the user right
+	clicks on a user to open the context menu, and disappears immediately upon
+	close. So I attempted to dispatch a right click event on a user from the
+	browser extension, but it doesn't work. I also attempted to use the keyboard
+	accessiblity input, which is shift + f10. This does successfully open the
+	context menu when a real user performs the action, but dispatching the
+  equivalent event programmatically doesn't work.
+
+- I finally discovered there is another event called a "contextmenu" event. I
+  was finally able to get the menu to open programatically with contextmenu
+  events!
+
+
+How to get users profile images from content script into the popup:
+---

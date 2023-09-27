@@ -1,0 +1,13 @@
+canvas#stage {
+	background: teal;
+}
+
+.hidden {
+	display: none;
+}
+
+#error_content {
+	color: red;
+}
+
+

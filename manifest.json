@@ -1,0 +1,25 @@
+{
+	"manifest_version": 2,
+	"name": "Discord Proximity Chat",
+	"version": "1.0",
+
+	"description": "Adds proximity chat to voice channels in discord",
+
+	"icons": {
+		"48": "icons/proximity_48.png",
+		"96": "icons/proximity_96.png"
+	},
+
+	"permissions": ["activeTab"],
+
+	"browser_action": {
+		"default_icon": "icons/proximity_48.png",
+		"theme_icons": [{
+			"light": "icons/proximity_48.png",
+			"dark": "icons/proximity_48.png",
+			"size": 48
+		}],
+		"default_title": "Discord Proximity Chat",
+		"default_popup": "popup/user_positions.html"
+	}
+}

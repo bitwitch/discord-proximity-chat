@@ -19,7 +19,12 @@
 			"dark": "icons/proximity_48.png",
 			"size": 48
 		}],
-		"default_title": "Discord Proximity Chat",
-		"default_popup": "popup/user_positions.html"
+		"default_title": "Discord Proximity Chat"
+	},
+
+	"background": {
+	  "scripts": ["background_script.js"],
+	  "persistent": false,
+	  "type": "module"
 	}
 }

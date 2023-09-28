@@ -31,6 +31,23 @@ How to control users volume from the browser extension
   was finally able to get the menu to open programatically with contextmenu
   events!
 
+- Turns out the mouse events on the slider do cause the slider to visually
+  react, but don't actually cause the volume to change. Currently I am
+	dispatching mousedown and up events on the slider at a specific location to
+  get the slider to jump to that amount, and then mouseup at that location to
+  stop the grabber there.
+
+- Looks like what was actually happening is the mouseup was happening too soon
+  after the mousedown. discord (which uses react) is calling setState() to set
+  the new slider value. My understanding is that react doesn't set state
+	immediately, it batches state changes together if possible. So the mouseup
+	event that also calls setState is using outdated state which essentially
+  ignores the state change from the mousedown event
+
+- I was able to solve this by only dispatching mousedown events and then
+  dispatching a click event that closes the context menu
+
+
 
 How to get users profile images from content script into the popup:
 ---

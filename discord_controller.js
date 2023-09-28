@@ -6,8 +6,33 @@ function init_discord_controller() {
 	// temporary indicator that extension is executing
 	document.body.style.border = "5px solid red";
 
+	let avatar_radius = 12;
+
+	// add proximity chat window to dom
+	let prox_chat_window = document.createElement("div");
+	prox_chat_window.id = "proximity_chat_window"
+	prox_chat_window.style.position = "absolute";
+	prox_chat_window.style.zIndex = "99999999";
+	prox_chat_window.style.right = "0";
+	prox_chat_window.style.backgroundColor = "#ffffff";
+	prox_chat_window.style.padding = "5px 5px 2px 5px";
+	prox_chat_window.style.borderRadius = "5px";
+	let title = document.createElement("h3");
+	title.innerText = "Discord Proximity Chat";
+	title.style.fontWeight = "bold";
+	title.style.padding = "5px 0px 8px 0px";
+	prox_chat_window.appendChild(title);
+	let canvas = document.createElement("canvas");
+	canvas.id = "voice_user_positions";
+	canvas.width = 500;
+	canvas.height = 500;
+	canvas.style.backgroundColor = "teal";
+	prox_chat_window.appendChild(canvas);
+	document.body.appendChild(prox_chat_window);
+
 	window.discord_controller = {
 		voice_user_selector: ".voiceUser-3nRK-K",
+		slider_selector: ".slider-1mmyV6",
 		grabber_selector: ".grabber-3R-Rx9",
 		right_arrow_event: new KeyboardEvent("keydown", {
 			bubbles: true,
@@ -36,25 +61,243 @@ function init_discord_controller() {
 			nativeEvent: "contextmenu",
 			type: "contextmenu",
 		}),
+
 		click_event: new MouseEvent("click", {
 			bubbles: true,
 			button: 0,
 			buttons: 0,
+			clientX: 1,
+			clientY: 1,
 			composed: true,
 			isTrusted: true,
 			nativeEvent: "click",
 			type: "click",
 		}),
 		voice_users: [],
+
+		// user positions cavas variables
+		// ------------------------------
+		canvas: canvas,
+		ctx: canvas.getContext("2d"),
+
+		avatar_radius: avatar_radius,
+		silent_distance: 300,
+		bg_color: "teal",
+
+		mouse_input: {
+			pos: {x:0, y:0},
+			down: false,
+			was_down: false
+		},
+		avatar_dragging: null,
+		avatar_client_user: null,
+		next_x: avatar_radius + 10,
+		ready_to_send_messages: false,
+
+		colors: [ "#F2BE22", "#F29727", "#F24C3D","#2E2A28", "#342A28", "#26577C", "#E55604", "#FF3FA4", "#451952", "#2B2730", "#6554AF", "#E966A0", "#9575DE", "#B70404", "#DB005B", "#F79327", "#8F475C", "#DB6386", "#8F5D2B", "#DB944D", "#8E6EDB", "#DB6142", "#DBD14D", "#DB7C39", "#3C24DB", "#F2689D", "#E864D9", "#F28168", "#7030E6", "#A932F0", "#C839D9", "#F032B4", "#E63051", "#D409E8", "#9E0AF2", "#5B13DB", "#200AF2", "#4D430C", "#471237", "#541913", "#3E1457", "#160F47", "#540725", "#5E0855", "#400747", "#9D1A02", "#4A3A35", "#190780", "#240054", "#240333", "#2F0230", "#030A45", "#3B0209", "#2E021C", "#7649E6", "#AB44FC", "#D441F2", "#4644FC", "#416EF2" ],
+
+		avatars: [],
+
+
 	};
 
-	browser.runtime.onMessage.addListener((message, sender, respond) => {
-		if (message.command === "set_user_volume") {
-			console.log(`Set User Volume: ${message.id} to ${message.volume}`);
-			set_user_volume(message.id, message.volume);
+	canvas.addEventListener("mousemove", function(e) {
+		let rect = canvas.getBoundingClientRect();
+		window.discord_controller.mouse_input.pos.x = e.clientX - rect.left;
+		window.discord_controller.mouse_input.pos.y = e.clientY - rect.top;
+	});
+
+	canvas.addEventListener("mousedown", function(e) {
+		window.discord_controller.mouse_input.down = true;
+	});
+
+	canvas.addEventListener("mouseup", function(e) {
+		window.discord_controller.mouse_input.down = false;
+	});
+
+	requestAnimationFrame(update);
+}
+
+function distance(p1, p2) {
+	let x = p2.x - p1.x;
+	let y = p2.y - p1.y;
+	return Math.sqrt(x*x + y*y);
+}
+
+
+function pick_random_color() {
+	let colors = window.discord_controller.colors;
+	const index = Math.floor(Math.random() * colors.length);
+	return colors[index];
+}
+
+function Avatar(id, username, image_url, x, y, is_client_user) {
+	let image = new Image();
+	let avatar = {
+		"id": id,
+		"image_loaded": false,
+		"is_client_user": is_client_user,
+		"image": image,
+		"color": pick_random_color(),
+		"username": username,
+		"pos": {"x": x, "y": y},
+	};
+	image.onload = () => avatar.image_loaded = true;
+	image.crossorigin = "anonymous";
+	image.src = image_url;
+
+	if (is_client_user) {
+		window.discord_controller.avatar_client_user = avatar;
+	}
+
+	return avatar;
+}
+
+function get_hovered_avatar() {
+	let avatars = window.discord_controller.avatars;
+	let mouse_input = window.discord_controller.mouse_input;
+	let avatar_radius = window.discord_controller.avatar_radius;
+	for (let avatar of avatars) {
+		if (distance(mouse_input.pos, avatar.pos) < avatar_radius) {
+			return avatar;
 		}
+	}
+	return null;
+}
+
+
+function create_mousedown_event(clientX, clientY) {
+	return new MouseEvent("mousedown", {
+		bubbles: true,
+		button: 0,
+		buttons: 1,
+		clientX: clientX,
+		clientY: clientY,
+		composed: true,
+		isTrusted: true,
+		nativeEvent: "mousedown",
+		type: "mousedown",
 	});
 }
+
+function create_mouseup_event(clientX, clientY) {
+	return new MouseEvent("mouseup", {
+		bubbles: true,
+		button: 0,
+		buttons: 1,
+		clientX: clientX,
+		clientY: clientY,
+		composed: true,
+		isTrusted: true,
+		nativeEvent: "mouseup",
+		type: "mouseup",
+	});
+}
+
+function adjust_user_volumes() {
+	let avatar_dragging = window.discord_controller.avatar_dragging;
+	let avatar_client_user = window.discord_controller.avatar_client_user;
+	let avatars = window.discord_controller.avatars;
+	let silent_distance = window.discord_controller.silent_distance;
+
+	if (avatar_dragging) {
+		if (avatar_dragging == avatar_client_user) {
+			for (let avatar of avatars) {
+				if (avatar == avatar_client_user) continue;
+				if (avatar.id == -1) continue;
+				let dist = distance(avatar.pos, avatar_client_user.pos);
+				let inverse_volume = dist / silent_distance;
+				if (inverse_volume > 1) inverse_volume = 1;
+				let volume = 1 - inverse_volume;
+				set_user_volume(avatar.id, volume);
+			}
+		} else {
+			if (avatar_dragging.id != -1) {
+				// dragging a user other than client user
+				let dist = distance(avatar_dragging.pos, avatar_client_user.pos);
+				let inverse_volume = dist / silent_distance;
+				if (inverse_volume > 1) inverse_volume = 1;
+				let volume = 1 - inverse_volume;
+				set_user_volume(avatar_dragging.id, volume);
+			}
+		}
+	}
+}
+
+
+function update(ts) {
+	let mouse_input = window.discord_controller.mouse_input;
+	let canvas = window.discord_controller.canvas;
+	let ctx = window.discord_controller.ctx;
+	let avatars = window.discord_controller.avatars;
+	let avatar_radius = window.discord_controller.avatar_radius;
+	let bg_color = window.discord_controller.bg_color;
+
+	let mouse_pressed = mouse_input.down && !mouse_input.was_down;
+	let mouse_released = !mouse_input.down && mouse_input.was_down;
+
+	let hovered_avatar = get_hovered_avatar();
+
+	// drag and drop avatars 
+	if (mouse_pressed) {
+		if (hovered_avatar) {
+			window.discord_controller.avatar_dragging = hovered_avatar;
+		}
+	} else if (mouse_released) {
+		adjust_user_volumes();
+		window.discord_controller.avatar_dragging = null;
+	}
+
+	if (window.discord_controller.avatar_dragging) {
+		window.discord_controller.avatar_dragging.pos.x = mouse_input.pos.x;
+		window.discord_controller.avatar_dragging.pos.y = mouse_input.pos.y;
+	}
+
+	//
+	// DRAW
+	//
+	ctx.fillStyle = bg_color;
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+	for (let avatar of avatars) {
+		// create circular clip region
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(avatar.pos.x, avatar.pos.y, avatar_radius, 0, 2*Math.PI, true);
+		ctx.closePath();
+		ctx.clip();
+
+		// draw image in clip region
+		let image_x = avatar.pos.x - avatar_radius;
+		let image_y = avatar.pos.y - avatar_radius;
+		if (avatar.image_loaded) {
+			ctx.drawImage(avatar.image, image_x, image_y, 2*avatar_radius, 2*avatar_radius);
+		} else { 
+			ctx.fillStyle = avatar.color;
+			ctx.fill();
+			//ctx.drawImage(logo, image_x, image_y, 2*avatar_radius, 2*avatar_radius);
+		}
+
+		ctx.restore();
+	}
+
+	if (hovered_avatar) {
+		let x = hovered_avatar.pos.x - avatar_radius;
+		let y = hovered_avatar.pos.y - avatar_radius - 5;
+		ctx.font = "12px monospace";
+		ctx.fillStyle = "black";
+		let name = hovered_avatar.username;
+		if (hovered_avatar.is_client_user) {
+			name += " (me)";
+		}
+		ctx.fillText(name, x, y);
+	}
+
+	window.discord_controller.mouse_input.was_down = mouse_input.down;
+
+	requestAnimationFrame(update);
+}
+
 
 function wait_for_element(selector) {
     return new Promise(resolve => {
@@ -80,38 +323,20 @@ function close_context_menu() {
 	document.dispatchEvent(window.discord_controller.click_event);
 }
 
-function set_user_volume2(user_id, volume) {
-	for (let i=0; i<50; ++i) {
-		console.log(`ticking grabber for user ${user_id}`);
-	}
-}
-
-
 async function set_user_volume(user_id, volume) {
 	let user = window.discord_controller.voice_users[user_id];
 	if (!user) return;
 
 	user.dispatchEvent(window.discord_controller.contextmenu_event);
 	let context_menu = await wait_for_element("#user-context");
-	let grabber = document.querySelector(window.discord_controller.grabber_selector);
+	let slider = document.querySelector(window.discord_controller.slider_selector);
 
-	if (grabber) {
-		let current_value = parseInt(grabber.style.left.replace("%", ""));
-		let adjustment = 100*volume - current_value;
-		let iterations = Math.abs(adjustment);
-		let direction_event = Math.sign(adjustment) > 0 
-			? window.discord_controller.right_arrow_event
-			: window.discord_controller.left_arrow_event;
-
-		grabber.focus();
-		for (let i=0; i<iterations; ++i) {
-			await new Promise((resolve) => {
-				setTimeout(() => {
-					console.log(`ticking grabber for user ${user_id}`);
-					resolve(grabber.dispatchEvent(direction_event));
-				}, 0);
-			});
-		}
+	if (slider) {
+		let rect = slider.getBoundingClientRect();
+		let x = rect.left + slider.clientWidth * volume;
+		let y = rect.y + 0.5 * rect.height;
+		let mousedown_event = create_mousedown_event(x, y);
+		slider.dispatchEvent(mousedown_event);
 	}
 
 	close_context_menu();
@@ -122,9 +347,21 @@ async function set_user_volume(user_id, volume) {
 		init_discord_controller();
 	}
 
+	window.discord_controller.next_x = window.discord_controller.avatar_radius + 10,
 	window.discord_controller.voice_users = document.querySelectorAll(window.discord_controller.voice_user_selector);
-	for (let i=0; i<window.discord_controller.voice_users.length; ++i) {
-		let user = window.discord_controller.voice_users[i];
+	window.discord_controller.avatars = [];
+
+	let avatar_radius = window.discord_controller.avatar_radius;
+	let voice_users = window.discord_controller.voice_users;
+	let avatars = window.discord_controller.avatars;
+	// TEMPORARY
+	avatars.push(Avatar(-1, "Old Johnson", "", 300, 320, false));
+	avatars.push(Avatar(-1, "Wendell T", "", 100, 100, false));
+	avatars.push(Avatar(-1, "Jerden Vanderbilt", "", 150, 250, false));
+
+
+	for (let i=0; i<voice_users.length; ++i) {
+		let user = voice_users[i];
 		let img = user.children[0].children[0];
 		let name = user.children[0].children[1];
 		let image_url = img.style.backgroundImage;
@@ -136,42 +373,10 @@ async function set_user_volume(user_id, volume) {
 		let is_client_user = !user_volume;
 		close_context_menu();
 
-		let image = new Image();
-		image.crossorigin = "anonymous";
-		image.onload = function() {
-			let canvas = document.createElement("canvas");
-			let ctx = canvas.getContext("2d");
-			canvas.width = image.width;
-			canvas.height = image.height;
-			ctx.drawImage(image, 0, 0);
-			let data_url = "";
-
-			try {
-				data_url = canvas.toDataURL();
-				console.log("image data success");
-			} catch (err) {
-				console.log(`Failed to create data url for image: ${image_url}`);
-				data_url = "";
-			}
-
-			browser.runtime.sendMessage({
-				command: "add_voice_user",
-				image_url: data_url,
-				username: name ? name.innerText : "Unknown",
-				id: i,
-				is_client_user: is_client_user,
-			});
-		}
-		image.onerror = function(err) {
-			browser.runtime.sendMessage({
-				command: "add_voice_user",
-				image_url: "",
-				username: name ? name.innerText : "Unknown",
-				id: i,
-				is_client_user: is_client_user,
-			});
-		}
-		image.src = image_url;
+		let x = window.discord_controller.next_x;
+		let username = name ? name.innerText : "Unknown";
+		avatars.push(Avatar(i, username, image_url, x, 30, is_client_user));
+		window.discord_controller.next_x += 2*avatar_radius + 10;
 	}
 
 	console.log("made it to the end");

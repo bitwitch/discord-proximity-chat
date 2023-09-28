@@ -34,3 +34,4 @@ How to control users volume from the browser extension
 
 How to get users profile images from content script into the popup:
 ---
+

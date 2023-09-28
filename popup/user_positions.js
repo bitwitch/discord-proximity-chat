@@ -7,6 +7,8 @@ const TAU = 2 * Math.PI;
 
 const canvas = document.getElementById("stage");
 const ctx = canvas.getContext("2d");
+const logo = document.getElementById("discord_logo_transparent");
+
 let ts_start, ts_prev;
 
 let mouse_input = {
@@ -18,6 +20,8 @@ let avatar_dragging = null;
 let avatar_client_user = null;
 let next_x = AVATAR_RADIUS + 10;
 let ready_to_send_messages = false;
+
+const colors = [ "#F2BE22", "#F29727", "#F24C3D","#2E2A28", "#342A28", "#26577C", "#E55604", "#FF3FA4", "#451952", "#2B2730", "#6554AF", "#E966A0", "#9575DE", "#B70404", "#DB005B", "#F79327", "#8F475C", "#DB6386", "#8F5D2B", "#DB944D", "#8E6EDB", "#DB6142", "#DBD14D", "#DB7C39", "#3C24DB", "#F2689D", "#E864D9", "#F28168", "#7030E6", "#A932F0", "#C839D9", "#F032B4", "#E63051", "#D409E8", "#9E0AF2", "#5B13DB", "#200AF2", "#4D430C", "#471237", "#541913", "#3E1457", "#160F47", "#540725", "#5E0855", "#400747", "#9D1A02", "#4A3A35", "#190780", "#240054", "#240333", "#2F0230", "#030A45", "#3B0209", "#2E021C", "#7649E6", "#AB44FC", "#D441F2", "#4644FC", "#416EF2" ];
 
 let avatars = [
 	// TEMPORARY
@@ -46,8 +50,8 @@ function distance(p1, p2) {
 	return Math.sqrt(x*x + y*y);
 }
 
+
 function pick_random_color() {
-	const colors = [ "red", "orange", "yellow", "green", "blue", "indigo", "violet" ];
 	const index = Math.floor(Math.random() * colors.length);
 	return colors[index];
 }
@@ -83,6 +87,49 @@ function get_hovered_avatar() {
 	return null;
 }
 
+function adjust_user_volumes() {
+	if (avatar_dragging && ready_to_send_messages) {
+		if (avatar_dragging == avatar_client_user) {
+
+			browser.tabs.query({currentWindow: true, active: true }).then(tabs => {
+				for (let avatar of avatars) {
+					if (avatar == avatar_client_user) continue;
+					if (avatar.id == -1) continue;
+					let dist = distance(avatar.pos, avatar_client_user.pos);
+					let inverse_volume = dist / SILENT_DISTANCE;
+					if (inverse_volume > 1) inverse_volume = 1;
+					let volume = 1 - inverse_volume;
+					browser.tabs.sendMessage(tabs[0].id, {
+						command: "set_user_volume",
+						id: avatar.id,
+						volume: volume,
+					});
+				}
+			});
+
+		} else {
+			if (avatar_dragging.id != -1) {
+
+				// dragging a user other than client user
+				let id = avatar_dragging.id;
+				let dist = distance(avatar_dragging.pos, avatar_client_user.pos);
+				let inverse_volume = dist / SILENT_DISTANCE;
+				if (inverse_volume > 1) inverse_volume = 1;
+				let volume = 1 - inverse_volume;
+
+				browser.tabs.query({ currentWindow: true, active: true })
+				.then(tabs => {
+					browser.tabs.sendMessage(tabs[0].id, {
+						command: "set_user_volume",
+						id: id,
+						volume: volume,
+					});
+				})
+			}
+		}
+	}
+}
+
 function update(ts) {
 	if (ts_start === undefined) {
 		ts_start = ts;
@@ -103,23 +150,7 @@ function update(ts) {
 			avatar_dragging = hovered_avatar;
 		}
 	} else if (mouse_released) {
-		if (avatar_dragging && avatar_dragging != avatar_client_user && ready_to_send_messages) {
-			let dist = distance(avatar_dragging.pos, avatar_client_user.pos);
-
-			let inverse_volume = dist / SILENT_DISTANCE;
-			if (inverse_volume > 1) inverse_volume = 1;
-			let volume = 1 - inverse_volume;
-
-			browser.tabs.query({ currentWindow: true, active: true })
-			.then(tabs => {
-				browser.tabs.sendMessage(tabs[0].id, {
-					command: "set_user_volume",
-					id: 0,
-					volume: volume,
-				});
-			})
-		}
-
+		adjust_user_volumes();
 		avatar_dragging = null;
 	}
 
@@ -135,24 +166,25 @@ function update(ts) {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	for (let avatar of avatars) {
+		// create circular clip region
+		ctx.save();
+		ctx.beginPath();
+		ctx.arc(avatar.pos.x, avatar.pos.y, AVATAR_RADIUS, 0, TAU, true);
+		ctx.closePath();
+		ctx.clip();
+
+		// draw image in clip region
+		let image_x = avatar.pos.x - AVATAR_RADIUS;
+		let image_y = avatar.pos.y - AVATAR_RADIUS;
 		if (avatar.image_loaded) {
-			// create circular clip region
-			ctx.save();
-			ctx.beginPath();
-			ctx.arc(avatar.pos.x, avatar.pos.y, AVATAR_RADIUS, 0, TAU, true);
-			ctx.closePath();
-			ctx.clip();
-			// draw image in clip region
-			let x = avatar.pos.x - AVATAR_RADIUS;
-			let y = avatar.pos.y - AVATAR_RADIUS;
-			ctx.drawImage(avatar.image, x, y, 2*AVATAR_RADIUS, 2*AVATAR_RADIUS);
-			ctx.restore();
-		} else {
-			ctx.beginPath();
+			ctx.drawImage(avatar.image, image_x, image_y, 2*AVATAR_RADIUS, 2*AVATAR_RADIUS);
+		} else { 
 			ctx.fillStyle = avatar.color;
-			ctx.arc(avatar.pos.x, avatar.pos.y, AVATAR_RADIUS, 0, TAU, true);
 			ctx.fill();
+			ctx.drawImage(logo, image_x, image_y, 2*AVATAR_RADIUS, 2*AVATAR_RADIUS);
 		}
+
+		ctx.restore();
 	}
 
 	if (hovered_avatar) {

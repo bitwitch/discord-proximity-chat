@@ -50,10 +50,8 @@ function init_discord_controller() {
 
 	browser.runtime.onMessage.addListener((message, sender, respond) => {
 		if (message.command === "set_user_volume") {
-			//console.log("Set User Volume");
-			//console.log(message.id);
-			//console.log(message.volume);
-			set_user_volume(window.discord_controller.voice_users[message.id], message.volume);
+			console.log(`Set User Volume: ${message.id} to ${message.volume}`);
+			set_user_volume(message.id, message.volume);
 		}
 	});
 }
@@ -82,7 +80,15 @@ function close_context_menu() {
 	document.dispatchEvent(window.discord_controller.click_event);
 }
 
-async function set_user_volume(user, volume) {
+function set_user_volume2(user_id, volume) {
+	for (let i=0; i<50; ++i) {
+		console.log(`ticking grabber for user ${user_id}`);
+	}
+}
+
+
+async function set_user_volume(user_id, volume) {
+	let user = window.discord_controller.voice_users[user_id];
 	if (!user) return;
 
 	user.dispatchEvent(window.discord_controller.contextmenu_event);
@@ -101,6 +107,7 @@ async function set_user_volume(user, volume) {
 		for (let i=0; i<iterations; ++i) {
 			await new Promise((resolve) => {
 				setTimeout(() => {
+					console.log(`ticking grabber for user ${user_id}`);
 					resolve(grabber.dispatchEvent(direction_event));
 				}, 0);
 			});
@@ -114,7 +121,6 @@ async function set_user_volume(user, volume) {
 	if (!window.discord_controller_initialized) {
 		init_discord_controller();
 	}
-
 
 	window.discord_controller.voice_users = document.querySelectorAll(window.discord_controller.voice_user_selector);
 	for (let i=0; i<window.discord_controller.voice_users.length; ++i) {

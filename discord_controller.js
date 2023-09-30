@@ -344,34 +344,49 @@ async function set_user_volume(user_id, volume) {
 }
 
 function initialize_peer(username) {
-	let discord_server_id = location.pathname.split("/")[1];
-	let peer = new Peer(`${username}@SS@SS${discord_server_id}`);
+	let discord_server_id = location.pathname.split("/")[2];
+	let peer = new Peer(`${username}666_666_666${discord_server_id}`);
+		//host: "localhost",
+		//port: 8000,
+		//debug: true, 
+		//path: "/proxchat",
+	//});
 	peer.on('connection', function(conn) {
+		console.log("Incomming connection established");
 
+		conn.on("data", function(data) {
+			console.log("Received", data);
+		});
 	});
 	return peer;
 }
 
 function connect_to(username) {
-	let peer_me = window.discord_controller.client_user.peer;
-	if (!peer_me) return;
+	let client_user = window.discord_controller.client_user;
+	if (!client_user.peer) return;
+
+	client_user.peer.on('error', console.error);
 
 	//TODO(shaw): check if connection with this user already exists
 
-	let discord_server_id = location.pathname.split("/")[1];
-	let peer_id = `${username}@SS@SS${discord_server_id}`;
-	var conn = peer_me.connect(peer_id);
-	conn.on("open", function() {
-		// Receive messages
-		conn.on("data", function(data) {
-			console.log("Received", data);
+	let discord_server_id = location.pathname.split("/")[2];
+	let peer_id = `${username}666_666_666${discord_server_id}`;
+	var conn = client_user.peer.connect(peer_id);
+	if (conn) {
+		conn.on("open", function() {
+			// Receive messages
+			conn.on("data", function(data) {
+				console.log("Received", data);
+			});
+
+			// Send messages
+			conn.send(`${client_user.username} says fuck you`);
 		});
 
-		// Send messages
-		conn.send(`${peer_me} says fuck you`);
-	});
-
-	window.discord_controller.connections.push(conn);
+		window.discord_controller.connections.push(conn);
+	} else {
+		console.log(`failed to connect to ${username}`);
+	}
 }
 
 (async function() {

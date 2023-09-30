@@ -194,7 +194,7 @@ function create_mouseup_event(clientX, clientY) {
 	});
 }
 
-function adjust_user_volumes() {
+async function adjust_user_volumes() {
 	let avatar_dragging = window.discord_controller.avatar_dragging;
 	let avatar_client_user = window.discord_controller.avatar_client_user;
 	let avatars = window.discord_controller.avatars;
@@ -209,7 +209,7 @@ function adjust_user_volumes() {
 				let inverse_volume = dist / silent_distance;
 				if (inverse_volume > 1) inverse_volume = 1;
 				let volume = 1 - inverse_volume;
-				set_user_volume(avatar.id, volume);
+				await set_user_volume(avatar.id, volume);
 			}
 		} else {
 			if (avatar_dragging.id != -1) {
@@ -354,11 +354,11 @@ async function set_user_volume(user_id, volume) {
 	let avatar_radius = window.discord_controller.avatar_radius;
 	let voice_users = window.discord_controller.voice_users;
 	let avatars = window.discord_controller.avatars;
-	// TEMPORARY
-	avatars.push(Avatar(-1, "Old Johnson", "", 300, 320, false));
-	avatars.push(Avatar(-1, "Wendell T", "", 100, 100, false));
-	avatars.push(Avatar(-1, "Jerden Vanderbilt", "", 150, 250, false));
 
+	// TEMPORARY
+	//avatars.push(Avatar(-1, "Old Johnson", "", 300, 320, false));
+	//avatars.push(Avatar(-1, "Wendell T", "", 100, 100, false));
+	//avatars.push(Avatar(-1, "Jerden Vanderbilt", "", 150, 250, false));
 
 	for (let i=0; i<voice_users.length; ++i) {
 		let user = voice_users[i];

@@ -49,7 +49,42 @@ How to control users volume from the browser extension
 
 
 
-How to get users profile images from content script into the popup:
----
+
+How to identify users from the extension:
+- maybe username is good enough for now? its really all i have access to from
+  the extension
+
+
+
+
+
+Networking:
+
+WebRTC:
+Signaling - some server that handles setting up communications
+	- need to exhange Offer and Answer
+
+
+
+Communication Overview:
+
+Server:
+
+
+Client via browser extension:
+- send message to server saying hey I am in this voice channel, this is my
+  username, and here is my current position
+- when message received from server, containing username and current position,
+  update that users position on the client
+
+
+when 
+
+
+
+
+
+
+
 
 

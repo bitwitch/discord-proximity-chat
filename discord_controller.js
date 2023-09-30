@@ -74,8 +74,14 @@ function init_discord_controller() {
 			type: "click",
 		}),
 		voice_users: [],
+		connections: [],
+		client_user: {
+			username: "",
+			avatar: null,
+			peer: null,
+		},
 
-		// user positions cavas variables
+		// user positions canvas variables
 		// ------------------------------
 		canvas: canvas,
 		ctx: canvas.getContext("2d"),
@@ -90,7 +96,6 @@ function init_discord_controller() {
 			was_down: false
 		},
 		avatar_dragging: null,
-		avatar_client_user: null,
 		next_x: avatar_radius + 10,
 		ready_to_send_messages: false,
 
@@ -146,10 +151,6 @@ function Avatar(id, username, image_url, x, y, is_client_user) {
 	image.crossorigin = "anonymous";
 	image.src = image_url;
 
-	if (is_client_user) {
-		window.discord_controller.avatar_client_user = avatar;
-	}
-
 	return avatar;
 }
 
@@ -196,16 +197,16 @@ function create_mouseup_event(clientX, clientY) {
 
 async function adjust_user_volumes() {
 	let avatar_dragging = window.discord_controller.avatar_dragging;
-	let avatar_client_user = window.discord_controller.avatar_client_user;
+	let client_user = window.discord_controller.client_user;
 	let avatars = window.discord_controller.avatars;
 	let silent_distance = window.discord_controller.silent_distance;
 
 	if (avatar_dragging) {
-		if (avatar_dragging == avatar_client_user) {
+		if (avatar_dragging == client_user.avatar) {
 			for (let avatar of avatars) {
-				if (avatar == avatar_client_user) continue;
+				if (avatar == client_user.avatar) continue;
 				if (avatar.id == -1) continue;
-				let dist = distance(avatar.pos, avatar_client_user.pos);
+				let dist = distance(avatar.pos, client_user.avatar.pos);
 				let inverse_volume = dist / silent_distance;
 				if (inverse_volume > 1) inverse_volume = 1;
 				let volume = 1 - inverse_volume;
@@ -214,7 +215,7 @@ async function adjust_user_volumes() {
 		} else {
 			if (avatar_dragging.id != -1) {
 				// dragging a user other than client user
-				let dist = distance(avatar_dragging.pos, avatar_client_user.pos);
+				let dist = distance(avatar_dragging.pos, client_user.avatar.pos);
 				let inverse_volume = dist / silent_distance;
 				if (inverse_volume > 1) inverse_volume = 1;
 				let volume = 1 - inverse_volume;
@@ -342,6 +343,37 @@ async function set_user_volume(user_id, volume) {
 	close_context_menu();
 }
 
+function initialize_peer(username) {
+	let discord_server_id = location.pathname.split("/")[1];
+	let peer = new Peer(`${username}@SS@SS${discord_server_id}`);
+	peer.on('connection', function(conn) {
+
+	});
+	return peer;
+}
+
+function connect_to(username) {
+	let peer_me = window.discord_controller.client_user.peer;
+	if (!peer_me) return;
+
+	//TODO(shaw): check if connection with this user already exists
+
+	let discord_server_id = location.pathname.split("/")[1];
+	let peer_id = `${username}@SS@SS${discord_server_id}`;
+	var conn = peer_me.connect(peer_id);
+	conn.on("open", function() {
+		// Receive messages
+		conn.on("data", function(data) {
+			console.log("Received", data);
+		});
+
+		// Send messages
+		conn.send(`${peer_me} says fuck you`);
+	});
+
+	window.discord_controller.connections.push(conn);
+}
+
 (async function() {
 	if (!window.discord_controller_initialized) {
 		init_discord_controller();
@@ -351,6 +383,7 @@ async function set_user_volume(user_id, volume) {
 	window.discord_controller.voice_users = document.querySelectorAll(window.discord_controller.voice_user_selector);
 	window.discord_controller.avatars = [];
 
+	let client_user = window.discord_controller.client_user;
 	let avatar_radius = window.discord_controller.avatar_radius;
 	let voice_users = window.discord_controller.voice_users;
 	let avatars = window.discord_controller.avatars;
@@ -364,6 +397,7 @@ async function set_user_volume(user_id, volume) {
 		let user = voice_users[i];
 		let img = user.children[0].children[0];
 		let name = user.children[0].children[1];
+		let username = name ? name.innerText : "Unknown";
 		let image_url = img.style.backgroundImage;
 		image_url = image_url.replace('url("', "").replace('")', "");
 
@@ -374,9 +408,26 @@ async function set_user_volume(user_id, volume) {
 		close_context_menu();
 
 		let x = window.discord_controller.next_x;
-		let username = name ? name.innerText : "Unknown";
-		avatars.push(Avatar(i, username, image_url, x, 30, is_client_user));
+		let avatar = Avatar(i, username, image_url, x, 30, is_client_user);
+		avatars.push(avatar);
 		window.discord_controller.next_x += 2*avatar_radius + 10;
+
+		if (is_client_user) {
+			client_user.username = username;
+			client_user.avatar = avatar;
+			client_user.peer = initialize_peer(username);
+		}
+	}
+
+	if (client_user.avatar) {
+		for (let avatar of avatars) {
+			if (avatar.is_client_user) continue;
+			if (client_user.username < avatar.username) {
+				connect_to(avatar.username);
+			}
+		}
+	} else {
+		console.log("Failed to find client user in voice channel list, no peer connections established");
 	}
 
 	console.log("made it to the end");

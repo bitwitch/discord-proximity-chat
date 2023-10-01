@@ -31,6 +31,7 @@ function init_discord_controller() {
 	document.body.appendChild(prox_chat_window);
 
 	window.discord_controller = {
+		websocket_server_url: "wss://localhost:8099/proxchat",
 		voice_user_selector: ".voiceUser-3nRK-K",
 		slider_selector: ".slider-1mmyV6",
 		grabber_selector: ".grabber-3R-Rx9",
@@ -78,7 +79,7 @@ function init_discord_controller() {
 		client_user: {
 			username: "",
 			avatar: null,
-			peer: null,
+			websocket_handle: -1,
 		},
 
 		// user positions canvas variables
@@ -118,6 +119,17 @@ function init_discord_controller() {
 
 	canvas.addEventListener("mouseup", function(e) {
 		window.discord_controller.mouse_input.down = false;
+	});
+
+	browser.runtime.onMessage.addListener((message, sender, send_response) => {
+		if (message.kind === "server_updated_position") {
+			console.log(`Received server updated position: ${message.username} (${message.position.x}, ${message.position.y})`);
+
+			let client_user = window.discord_controller.client_user;
+			if (client_user.username && client_user.username != message.username) {
+				update_user_position(message.username, message.position);
+			}
+		} 
 	});
 
 	requestAnimationFrame(update);
@@ -195,6 +207,18 @@ function create_mouseup_event(clientX, clientY) {
 	});
 }
 
+function adjust_single_user_volume(avatar) {
+	let client_user = window.discord_controller.client_user;
+	let silent_distance = window.discord_controller.silent_distance;
+	if (avatar && avatar.id != -1) {
+		let dist = distance(avatar.pos, client_user.avatar.pos);
+		let inverse_volume = dist / silent_distance;
+		if (inverse_volume > 1) inverse_volume = 1;
+		let volume = 1 - inverse_volume;
+		set_user_volume(avatar.id, volume);
+	}
+}
+
 async function adjust_user_volumes() {
 	let avatar_dragging = window.discord_controller.avatar_dragging;
 	let client_user = window.discord_controller.client_user;
@@ -203,6 +227,18 @@ async function adjust_user_volumes() {
 
 	if (avatar_dragging) {
 		if (avatar_dragging == client_user.avatar) {
+			let message = { 
+				kind: "update_user_position", 
+				handle: client_user.websocket_handle, 
+				username: client_user.username, 
+				position: client_user.avatar.pos };
+			browser.runtime.sendMessage(message)
+			.then(did_send => {
+				if (!did_send) {
+					console.log(`Failed to send position update websocket message: ${username} (${avatar.pos.x}, ${avatar.pos.y})`);
+				}
+			});
+
 			for (let avatar of avatars) {
 				if (avatar == client_user.avatar) continue;
 				if (avatar.id == -1) continue;
@@ -221,6 +257,17 @@ async function adjust_user_volumes() {
 				let volume = 1 - inverse_volume;
 				set_user_volume(avatar_dragging.id, volume);
 			}
+		}
+	}
+}
+
+function update_user_position(username, position) {
+	let avatars = window.discord_controller.avatars;
+	for (let avatar of avatars) {
+		if (avatar.username == username) {
+			avatar.pos = position;
+			adjust_single_user_volume(avatar);
+			break;
 		}
 	}
 }
@@ -343,52 +390,7 @@ async function set_user_volume(user_id, volume) {
 	close_context_menu();
 }
 
-function initialize_peer(username) {
-	let discord_server_id = location.pathname.split("/")[2];
-	let peer = new Peer(`${username}666_666_666${discord_server_id}`);
-		//host: "localhost",
-		//port: 8000,
-		//debug: true, 
-		//path: "/proxchat",
-	//});
-	peer.on('connection', function(conn) {
-		console.log("Incomming connection established");
-
-		conn.on("data", function(data) {
-			console.log("Received", data);
-		});
-	});
-	return peer;
-}
-
-function connect_to(username) {
-	let client_user = window.discord_controller.client_user;
-	if (!client_user.peer) return;
-
-	client_user.peer.on('error', console.error);
-
-	//TODO(shaw): check if connection with this user already exists
-
-	let discord_server_id = location.pathname.split("/")[2];
-	let peer_id = `${username}666_666_666${discord_server_id}`;
-	var conn = client_user.peer.connect(peer_id);
-	if (conn) {
-		conn.on("open", function() {
-			// Receive messages
-			conn.on("data", function(data) {
-				console.log("Received", data);
-			});
-
-			// Send messages
-			conn.send(`${client_user.username} says fuck you`);
-		});
-
-		window.discord_controller.connections.push(conn);
-	} else {
-		console.log(`failed to connect to ${username}`);
-	}
-}
-
+// This will get called each time the browser extension button is clicked
 (async function() {
 	if (!window.discord_controller_initialized) {
 		init_discord_controller();
@@ -430,19 +432,12 @@ function connect_to(username) {
 		if (is_client_user) {
 			client_user.username = username;
 			client_user.avatar = avatar;
-			client_user.peer = initialize_peer(username);
+			browser.runtime.sendMessage({kind: "initialize_websocket", username: username, position: avatar.pos})
+			.then(response => {
+				console.log("runtime message response: ", response);
+				client_user.websocket_handle = response;
+			});
 		}
-	}
-
-	if (client_user.avatar) {
-		for (let avatar of avatars) {
-			if (avatar.is_client_user) continue;
-			if (client_user.username < avatar.username) {
-				connect_to(avatar.username);
-			}
-		}
-	} else {
-		console.log("Failed to find client user in voice channel list, no peer connections established");
 	}
 
 	console.log("made it to the end");

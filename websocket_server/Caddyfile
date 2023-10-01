@@ -1,0 +1,7 @@
+localhost:8099 {
+	@websockets {
+		header Connection *Upgrade*
+		header Upgrade    websocket
+	}
+	reverse_proxy @websockets localhost:3333
+}

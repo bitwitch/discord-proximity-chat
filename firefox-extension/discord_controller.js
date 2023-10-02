@@ -31,7 +31,6 @@ function init_discord_controller() {
 	document.body.appendChild(prox_chat_window);
 
 	window.discord_controller = {
-		websocket_server_url: "wss://localhost:8099/proxchat",
 		voice_user_selector: ".voiceUser-3nRK-K",
 		slider_selector: ".slider-1mmyV6",
 		grabber_selector: ".grabber-3R-Rx9",
@@ -103,8 +102,6 @@ function init_discord_controller() {
 		colors: [ "#F2BE22", "#F29727", "#F24C3D","#2E2A28", "#342A28", "#26577C", "#E55604", "#FF3FA4", "#451952", "#2B2730", "#6554AF", "#E966A0", "#9575DE", "#B70404", "#DB005B", "#F79327", "#8F475C", "#DB6386", "#8F5D2B", "#DB944D", "#8E6EDB", "#DB6142", "#DBD14D", "#DB7C39", "#3C24DB", "#F2689D", "#E864D9", "#F28168", "#7030E6", "#A932F0", "#C839D9", "#F032B4", "#E63051", "#D409E8", "#9E0AF2", "#5B13DB", "#200AF2", "#4D430C", "#471237", "#541913", "#3E1457", "#160F47", "#540725", "#5E0855", "#400747", "#9D1A02", "#4A3A35", "#190780", "#240054", "#240333", "#2F0230", "#030A45", "#3B0209", "#2E021C", "#7649E6", "#AB44FC", "#D441F2", "#4644FC", "#416EF2" ],
 
 		avatars: [],
-
-
 	};
 
 	canvas.addEventListener("mousemove", function(e) {
@@ -225,40 +222,30 @@ async function adjust_user_volumes() {
 	let avatars = window.discord_controller.avatars;
 	let silent_distance = window.discord_controller.silent_distance;
 
-	if (avatar_dragging) {
-		if (avatar_dragging == client_user.avatar) {
-			let message = { 
-				kind: "update_user_position", 
-				handle: client_user.websocket_handle, 
-				username: client_user.username, 
-				position: client_user.avatar.pos };
-			browser.runtime.sendMessage(message)
-			.then(did_send => {
-				if (!did_send) {
-					console.log(`Failed to send position update websocket message: ${username} (${avatar.pos.x}, ${avatar.pos.y})`);
-				}
-			});
+	if (avatar_dragging && avatar_dragging == client_user.avatar) {
+		let message = { 
+			kind: "update_user_position", 
+			handle: client_user.websocket_handle, 
+			username: client_user.username, 
+			position: client_user.avatar.pos };
+		
+		browser.runtime.sendMessage(message)
+		.then(did_send => {
+			if (!did_send) {
+				console.log(`Failed to send position update websocket message: ${username} (${avatar.pos.x}, ${avatar.pos.y})`);
+			}
+		});
 
-			for (let avatar of avatars) {
-				if (avatar == client_user.avatar) continue;
-				if (avatar.id == -1) continue;
-				let dist = distance(avatar.pos, client_user.avatar.pos);
-				let inverse_volume = dist / silent_distance;
-				if (inverse_volume > 1) inverse_volume = 1;
-				let volume = 1 - inverse_volume;
-				await set_user_volume(avatar.id, volume);
-			}
-		} else {
-			if (avatar_dragging.id != -1) {
-				// dragging a user other than client user
-				let dist = distance(avatar_dragging.pos, client_user.avatar.pos);
-				let inverse_volume = dist / silent_distance;
-				if (inverse_volume > 1) inverse_volume = 1;
-				let volume = 1 - inverse_volume;
-				set_user_volume(avatar_dragging.id, volume);
-			}
+		for (let avatar of avatars) {
+			if (avatar == client_user.avatar) continue;
+			if (avatar.id == -1) continue;
+			let dist = distance(avatar.pos, client_user.avatar.pos);
+			let inverse_volume = dist / silent_distance;
+			if (inverse_volume > 1) inverse_volume = 1;
+			let volume = 1 - inverse_volume;
+			await set_user_volume(avatar.id, volume);
 		}
-	}
+	} 
 }
 
 function update_user_position(username, position) {

@@ -33,7 +33,6 @@ function init_discord_controller() {
 	window.discord_controller = {
 		voice_user_selector: ".voiceUser-3nRK-K",
 		slider_selector: ".slider-1mmyV6",
-		grabber_selector: ".grabber-3R-Rx9",
 		right_arrow_event: new KeyboardEvent("keydown", {
 			bubbles: true,
 			code: "ArrowRight",

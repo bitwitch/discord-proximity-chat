@@ -9,7 +9,8 @@ const message_kind_table = {
 };
 
 function initialize_websocket(username, position) {
-	let websocket_server_url = "ws://localhost:3333/proxchat";
+	//let websocket_server_url = "ws://localhost:3333/proxchat";
+	let websocket_server_url = "ws://159.65.223.125:3333/proxchat";
 	let index = websocket_connections.length;
 
 	let socket = null;

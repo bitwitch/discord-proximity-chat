@@ -34,6 +34,16 @@ type User struct {
 
 var users = make(map[string]User)
 
+var pingCodec = websocket.Codec{
+	Marshal: func(v interface{}) (data []byte, payloadType byte, err error) {
+		return nil, websocket.PingFrame, nil
+	},
+}
+// can be used like this:
+//if err := pingCodec.Send(ws, nil); err != nil {
+	// handle ping error
+//}
+
 func addUser(message Message, conn *websocket.Conn) {
 	// NOTE(shaw): this system is kinda shitty, a unique id would be
 	// better than username, but on the client side right now we don't
@@ -78,21 +88,22 @@ func broadcastUserPosition(message Message) {
 	}
 }
 
+
+// TODO(shaw): send periodic pings to keep connection alive
+// can use conn.PayloadType if you need to check for websocket.PongFrame
+
 func HandleWebsocket(conn *websocket.Conn) {
 	defer conn.Close();
 
-	fmt.Printf("got /proxchat request\n")
+	fmt.Printf("Received a new websocket connection\n")
 
 	var err error
 	for {
+
 		var message Message
 
 		if err = websocket.JSON.Receive(conn, &message); err != nil {
 			fmt.Printf("Can't receive: %s\n", err)
-			var text string
-			if err = websocket.Message.Receive(conn, &text); err != nil {
-				fmt.Printf("Message: %s\n", text)
-			}
 			break
 		}
 

@@ -1,5 +1,6 @@
 ## Discord Proximity Chat
-A browser extension for proximity chat in Discord voice channels. The extension provides a 2D window populated with avatars of every user in a voice channel. Each connected user can click and drag their avatar with their mouse to move it around the window. As users move around, their volume will be dynamically changed depending on their distance from your avatar.  
+
+A browser extension and websocket server enabling proximity chat in Discord voice channels. The extension provides a 2D window populated with avatars of every user in a voice channel. Each connected user can click and drag their avatar with their mouse to move it around the window. As users move around, their volume will be dynamically changed depending on their distance from your avatar.  
 
 There is a local only version that allows you to drag all users avatars around and volume control still works. This branch is tagged `local-only-version`.  
 

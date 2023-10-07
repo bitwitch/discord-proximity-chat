@@ -6,8 +6,6 @@ function init_discord_controller() {
 	// temporary indicator that extension is executing
 	document.body.style.border = "5px solid red";
 
-	let avatar_radius = 12;
-
 	// add proximity chat window to dom
 	let prox_chat_window = document.createElement("div");
 	prox_chat_window.id = "proximity_chat_window"
@@ -17,11 +15,20 @@ function init_discord_controller() {
 	prox_chat_window.style.backgroundColor = "#ffffff";
 	prox_chat_window.style.padding = "5px 5px 2px 5px";
 	prox_chat_window.style.borderRadius = "5px";
+	let header = document.createElement("div");
+	header.style.display = "flex";
+	header.style.justifyContent = "space-between";
+	prox_chat_window.appendChild(header);
 	let title = document.createElement("h3");
 	title.innerText = "Discord Proximity Chat";
 	title.style.fontWeight = "bold";
 	title.style.padding = "5px 0px 8px 0px";
-	prox_chat_window.appendChild(title);
+	header.appendChild(title);
+	let close_button = document.createElement("div");
+	close_button.innerHTML = "&#128473;"; // unicode cancellation x
+	close_button.style.padding = "5px";
+	close_button.style.cursor = "pointer";
+	header.appendChild(close_button);
 	let canvas = document.createElement("canvas");
 	canvas.id = "voice_user_positions";
 	canvas.width = 500;
@@ -29,6 +36,8 @@ function init_discord_controller() {
 	canvas.style.backgroundColor = "teal";
 	prox_chat_window.appendChild(canvas);
 	document.body.appendChild(prox_chat_window);
+
+	let avatar_radius = 12;
 
 	window.discord_controller = {
 		voice_user_selector: ".voiceUser-3nRK-K",
@@ -82,6 +91,7 @@ function init_discord_controller() {
 
 		// user positions canvas variables
 		// ------------------------------
+		prox_chat_window: prox_chat_window,
 		canvas: canvas,
 		ctx: canvas.getContext("2d"),
 
@@ -115,6 +125,10 @@ function init_discord_controller() {
 
 	canvas.addEventListener("mouseup", function(e) {
 		window.discord_controller.mouse_input.down = false;
+	});
+
+	close_button.addEventListener("click", function(e) {
+		prox_chat_window.style.display = "none";
 	});
 
 	browser.runtime.onMessage.addListener((message, sender, send_response) => {
@@ -231,7 +245,7 @@ async function adjust_user_volumes() {
 		browser.runtime.sendMessage(message)
 		.then(did_send => {
 			if (!did_send) {
-				console.log(`Failed to send position update websocket message: ${username} (${avatar.pos.x}, ${avatar.pos.y})`);
+				console.log(`Failed to send position update websocket message: ${client_user.username} (${client_user.avatar.pos.x}, ${client_user.avatar.pos.y})`);
 			}
 		});
 
@@ -381,6 +395,8 @@ async function set_user_volume(user_id, volume) {
 	if (!window.discord_controller_initialized) {
 		init_discord_controller();
 	}
+
+	window.discord_controller.prox_chat_window.style.display = "block";
 
 	window.discord_controller.next_x = window.discord_controller.avatar_radius + 10,
 	window.discord_controller.voice_users = document.querySelectorAll(window.discord_controller.voice_user_selector);

@@ -103,6 +103,11 @@ function update_user_position(handle, username, position) {
 	return true;
 }
 
+function close_websocket(handle) {
+	let socket = websocket_connections[handle];
+	socket.close(1000); // 1000 = code for normal close
+}
+
 browser.browserAction.onClicked.addListener((tab) => {
 	// clear any stored connections
 	websocket_connections = [];
@@ -138,6 +143,8 @@ browser.runtime.onMessage.addListener((message, sender, send_response) => {
 	} else if (message.kind === "update_user_position") {
 		let did_send = update_user_position(message.handle, message.username, message.position);
 		send_response(did_send);
+	} else if (message.kind === "close_websocket") {
+		close_websocket(message.handle);
 	}
 });
 

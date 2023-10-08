@@ -132,6 +132,11 @@ function init_discord_controller() {
 	});
 
 	close_button.addEventListener("click", function(e) {
+		let client_user = window.discord_controller.client_user;
+		if (client_user.websocket_handle != -1) {
+			let message = { kind: "close_websocket", handle: client_user.websocket_handle };
+			browser.runtime.sendMessage(message)
+		}
 		prox_chat_window.style.display = "none";
 	});
 

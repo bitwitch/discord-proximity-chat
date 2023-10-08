@@ -86,11 +86,6 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			rawMessage, err := json.Marshal(message)
-			if err != nil {
-				log.Printf("Failed to serialize message from client as json\n")
-				continue
-			}
 
 			if message.Kind == MessageAddUser {
 				log.Printf("MessageAddUser\n")
@@ -99,11 +94,34 @@ func (h *Hub) run() {
 					X: message.X,
 					Y: message.Y,
 				}
+
 				h.sendAllUsersPositions(message.client)
+
+				// broadcast an update position message to all clients
+				updatePositionMessage := message
+				updatePositionMessage.Kind = MessageUpdatePosition
+				rawMessage, err := json.Marshal(updatePositionMessage)
+				if err != nil {
+					log.Printf("Failed to serialize message from client as json\n")
+					continue
+				}
 				h.broadcastMessage(rawMessage)
+
 			} else if message.Kind == MessageUpdatePosition {
 				log.Printf("MessageUpdatePosition\n")
+				h.clients[message.client] = User{
+					Username: message.Username,
+					X: message.X,
+					Y: message.Y,
+				}
+
+				rawMessage, err := json.Marshal(message)
+				if err != nil {
+					log.Printf("Failed to serialize message from client as json\n")
+					continue
+				}
 				h.broadcastMessage(rawMessage)
+
 			} else {
 				log.Printf("Unknown message kind: %d\n", message.Kind)
 			}

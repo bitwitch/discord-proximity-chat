@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"encoding/json"
 
 	"github.com/gorilla/websocket"
 )
@@ -25,7 +26,10 @@ type Message struct {
 	Username string `json:"username"`
 	X int `json:"x"`
 	Y int `json:"y"`
+
+	client *Client
 }
+
 
 const (
 	// Time allowed to write a message to the peer.
@@ -81,7 +85,7 @@ func (c *Client) readPump() {
 		c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil 
 	})
 	for {
-		_, message, err := c.conn.ReadMessage()
+		messageKind, rawMessage, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -89,9 +93,17 @@ func (c *Client) readPump() {
 			break
 		}
 
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		rawMessage = bytes.TrimSpace(bytes.Replace(rawMessage, newline, space, -1))
 
-		c.hub.broadcast <- message
+		if messageKind == websocket.TextMessage {
+			var message Message
+			if err := json.Unmarshal(rawMessage, &message); err != nil {
+				log.Printf("Failed to parse message from client: %s\n", string(rawMessage))
+				continue
+			}
+			message.client = c
+			c.hub.broadcast <- message
+		}
 	}
 }
 

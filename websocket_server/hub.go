@@ -5,13 +5,19 @@ import (
 	"encoding/json"
 )
 
+type User struct {
+	Username string 
+	X int 
+	Y int
+}
+
 // Hub maintains the set of active clients and broadcasts messages to the clients.
 type Hub struct {
-	// Registered clients.
-	clients map[*Client]bool
+	// Registered clients. User is information about the connected discord user
+	clients map[*Client]User
 
 	// Inbound messages from the clients.
-	broadcast chan []byte
+	broadcast chan Message
 
 	// Register requests from the clients.
 	register chan *Client
@@ -22,10 +28,39 @@ type Hub struct {
 
 func newHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
+		broadcast:  make(chan Message),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+		clients:    make(map[*Client]User),
+	}
+}
+
+func (h *Hub) sendAllUsersPositions(client *Client) {
+	for c, user := range h.clients {
+		if c == client {
+			continue
+		}
+
+		message := Message{
+			Kind: MessageUpdatePosition,
+			Username: user.Username,
+			X: user.X,
+			Y: user.Y,
+		}
+
+		rawMessage, err := json.Marshal(message)
+		if err != nil {
+			log.Printf("Failed to serialize message as json\n")
+			continue
+		}
+
+		select {
+		case client.send <- rawMessage:
+		default:
+			close(client.send)
+			delete(h.clients, client)
+			break
+		}
 	}
 }
 
@@ -44,19 +79,29 @@ func (h *Hub) run() {
 	for {
 		select {
 		case client := <-h.register:
-			h.clients[client] = true
+			h.clients[client] = User{}
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.send)
 			}
-		case rawMessage := <-h.broadcast:
-			var message Message
-			if err := json.Unmarshal(rawMessage, &message); err != nil {
-				log.Printf("Failed to parse message from client: %s\n", string(rawMessage))
+		case message := <-h.broadcast:
+			rawMessage, err := json.Marshal(message)
+			if err != nil {
+				log.Printf("Failed to serialize message from client as json\n")
 				continue
 			}
-			if message.Kind == MessageUpdatePosition {
+
+			if message.Kind == MessageAddUser {
+				log.Printf("MessageAddUser\n")
+				h.clients[message.client] = User{
+					Username: message.Username,
+					X: message.X,
+					Y: message.Y,
+				}
+				h.sendAllUsersPositions(message.client)
+				h.broadcastMessage(rawMessage)
+			} else if message.Kind == MessageUpdatePosition {
 				log.Printf("MessageUpdatePosition\n")
 				h.broadcastMessage(rawMessage)
 			} else {

@@ -27,7 +27,7 @@ function initialize_websocket(username, position) {
 
 	socket.addEventListener("open", (e) => {
 		let message = {
-			kind: message_kind_table["update_position"],
+			kind: message_kind_table["add_user"],
 			username: username,
 			x: position.x,
 			y: position.y,

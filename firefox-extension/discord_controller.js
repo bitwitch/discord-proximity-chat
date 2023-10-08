@@ -111,6 +111,8 @@ function init_discord_controller() {
 		avatar_dragging: null,
 		next_x: avatar_radius + 10,
 		ready_to_send_messages: false,
+		prev_ts: performance.now(),
+		move_rate: 13,
 
 		colors: [ "#F2BE22", "#F29727", "#F24C3D","#2E2A28", "#342A28", "#26577C", "#E55604", "#FF3FA4", "#451952", "#2B2730", "#6554AF", "#E966A0", "#9575DE", "#B70404", "#DB005B", "#F79327", "#8F475C", "#DB6386", "#8F5D2B", "#DB944D", "#8E6EDB", "#DB6142", "#DBD14D", "#DB7C39", "#3C24DB", "#F2689D", "#E864D9", "#F28168", "#7030E6", "#A932F0", "#C839D9", "#F032B4", "#E63051", "#D409E8", "#9E0AF2", "#5B13DB", "#200AF2", "#4D430C", "#471237", "#541913", "#3E1457", "#160F47", "#540725", "#5E0855", "#400747", "#9D1A02", "#4A3A35", "#190780", "#240054", "#240333", "#2F0230", "#030A45", "#3B0209", "#2E021C", "#7649E6", "#AB44FC", "#D441F2", "#4644FC", "#416EF2" ],
 
@@ -177,6 +179,7 @@ function Avatar(id, username, image_url, x, y, is_client_user) {
 		"color": pick_random_color(),
 		"username": username,
 		"pos": {"x": x, "y": y},
+		"target_pos": {"x": x, "y": y},
 	};
 	image.onload = () => avatar.image_loaded = true;
 	image.crossorigin = "anonymous";
@@ -274,7 +277,8 @@ function update_user_position(username, position) {
 	let avatars = window.discord_controller.avatars;
 	for (let avatar of avatars) {
 		if (avatar.username == username) {
-			avatar.pos = position;
+			avatar.target_pos.x = position.x;
+			avatar.target_pos.y = position.y;
 			adjust_single_user_volume(avatar);
 			break;
 		}
@@ -283,6 +287,7 @@ function update_user_position(username, position) {
 
 
 function update(ts) {
+	let move_rate = window.discord_controller.move_rate;
 	let mouse_input = window.discord_controller.mouse_input;
 	let canvas = window.discord_controller.canvas;
 	let ctx = window.discord_controller.ctx;
@@ -290,6 +295,9 @@ function update(ts) {
 	let avatar_radius = window.discord_controller.avatar_radius;
 	let bg_color = window.discord_controller.bg_color;
 	let client_user = window.discord_controller.client_user;
+
+	let dt = ts - window.discord_controller.prev_ts;
+	window.discord_controller.prev_ts = ts;
 
 	let mouse_pressed = mouse_input.down && !mouse_input.was_down;
 	let mouse_released = !mouse_input.down && mouse_input.was_down;
@@ -309,6 +317,21 @@ function update(ts) {
 	if (window.discord_controller.avatar_dragging) {
 		window.discord_controller.avatar_dragging.pos.x = mouse_input.pos.x;
 		window.discord_controller.avatar_dragging.pos.y = mouse_input.pos.y;
+		window.discord_controller.avatar_dragging.target_pos.x = mouse_input.pos.x;
+		window.discord_controller.avatar_dragging.target_pos.y = mouse_input.pos.y;
+	}
+
+	// update positions
+	for (let avatar of avatars) {
+		if (avatar.pos.x != avatar.target_pos.x || avatar.pos.y != avatar.target_pos.y) {
+			if (distance(avatar.pos, avatar.target_pos) < 0.1) {
+				avatar.pos.x = avatar.target_pos.x;
+				avatar.pos.y = avatar.target_pos.y;
+			} else {
+				avatar.pos.x += (avatar.target_pos.x - avatar.pos.x) * move_rate * dt;
+				avatar.pos.y += (avatar.target_pos.y - avatar.pos.y) * move_rate * dt;
+			}
+		}
 	}
 
 	//

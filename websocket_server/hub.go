@@ -88,7 +88,9 @@ func (h *Hub) run() {
 		case message := <-h.broadcast:
 
 			if message.Kind == MessageAddUser {
-				log.Printf("MessageAddUser\n")
+				if debugPrint {
+					log.Printf("MessageAddUser\n")
+				}
 				h.clients[message.client] = User{
 					Username: message.Username,
 					X: message.X,
@@ -108,7 +110,9 @@ func (h *Hub) run() {
 				h.broadcastMessage(rawMessage)
 
 			} else if message.Kind == MessageUpdatePosition {
-				log.Printf("MessageUpdatePosition\n")
+				if debugPrint {
+					log.Printf("MessageUpdatePosition\n")
+				}
 				h.clients[message.client] = User{
 					Username: message.Username,
 					X: message.X,

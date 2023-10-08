@@ -81,7 +81,9 @@ func (c *Client) readPump() {
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { 
-		log.Printf("got pong\n")
+		if debugPrint {
+			log.Printf("got pong\n")
+		}
 		c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil 
 	})
 	for {
@@ -147,7 +149,9 @@ func (c *Client) writePump() {
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			log.Printf("pinging\n")
+			if debugPrint {
+				log.Printf("pinging\n")
+			}
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

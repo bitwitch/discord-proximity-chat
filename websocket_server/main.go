@@ -7,9 +7,12 @@ import (
 	"time"
 )
 
+var debugPrint bool
+
 func main() {
 	var addr string
 	flag.StringVar(&addr, "addr", ":3333", "http service address")
+	flag.BoolVar(&debugPrint, "debug", false, "enable debug printing")
 
 	flag.Parse()
 	hub := newHub()

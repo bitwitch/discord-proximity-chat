@@ -3,9 +3,6 @@ function init_discord_controller() {
 
 	window.discord_controller_initialized = true;
 
-	// temporary indicator that extension is executing
-	document.body.style.border = "5px solid red";
-
 	// add proximity chat window to dom
 	let prox_chat_window = document.createElement("div");
 	prox_chat_window.id = "proximity_chat_window"

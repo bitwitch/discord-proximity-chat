@@ -27,19 +27,22 @@ function initialize_websocket(username, position) {
 
 	socket.addEventListener("open", (e) => {
 		let message = {
-			kind: message_kind_table["add_user"],
+			kind: message_kind_table["update_position"],
 			username: username,
 			x: position.x,
 			y: position.y,
 		};
 		console.log("open, sending message: ", message);
-		socket.send(JSON.stringify(message))
+		try {
+			socket.send(JSON.stringify(message))
+		} catch (err) {
+			console.log("failed to send websocket message to update user position: ", err);
+		}
 	});
 
 	socket.addEventListener("close", (e) => {
 		console.log("websocket close: ", e);
 	});
-
 
 	// Listen for messages
 	socket.addEventListener("message", (e) => {
@@ -100,12 +103,33 @@ function update_user_position(handle, username, position) {
 	return true;
 }
 
+browser.browserAction.onClicked.addListener((tab) => {
+	// clear any stored connections
+	websocket_connections = [];
 
-browser.browserAction.onClicked.addListener(tab => {
 	browser.tabs.executeScript({file: "/discord_controller.js"})
 	.then(() => console.log("discord controller script executed"))
 	.catch(console.error);
 });
+
+//async function reconnect() {
+	//let users;
+	//try {
+		//let save_data = await browser.storage.session.get("discord_proxchat_connected_users");
+		//if (!save_data) return;
+		//users = JSON.parse(save_data);
+	//} catch (err) {
+		//console.log("failed to parse user data from session storage: ", err);
+		//return;
+	//}
+
+	//console.log("users from session storage: ", users);
+
+	//websocket_connections = [];
+	//for (let user of users) {
+		//initialize_websocket(user.username, user.position);
+	//}
+//}
 
 browser.runtime.onMessage.addListener((message, sender, send_response) => {
 	if (message.kind === "initialize_websocket") {

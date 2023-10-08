@@ -10,7 +10,7 @@
 		"96": "icons/proximity_96.png"
 	},
 
-	"permissions": ["activeTab"],
+	"permissions": [ "activeTab", "storage" ],
 
 	"browser_action": {
 		"default_icon": "icons/proximity_48.png",
@@ -31,7 +31,7 @@
 
 	"background": {
 	  "scripts": ["background_script.js"],
-	  "persistent": false,
+	  "persistent": true,
 	  "type": "module"
 	}
 }

@@ -112,7 +112,7 @@ function init_discord_controller() {
 		next_x: avatar_radius + 10,
 		ready_to_send_messages: false,
 		prev_ts: performance.now(),
-		move_rate: 13,
+		move_rate: 9,
 
 		colors: [ "#F2BE22", "#F29727", "#F24C3D","#2E2A28", "#342A28", "#26577C", "#E55604", "#FF3FA4", "#451952", "#2B2730", "#6554AF", "#E966A0", "#9575DE", "#B70404", "#DB005B", "#F79327", "#8F475C", "#DB6386", "#8F5D2B", "#DB944D", "#8E6EDB", "#DB6142", "#DBD14D", "#DB7C39", "#3C24DB", "#F2689D", "#E864D9", "#F28168", "#7030E6", "#A932F0", "#C839D9", "#F032B4", "#E63051", "#D409E8", "#9E0AF2", "#5B13DB", "#200AF2", "#4D430C", "#471237", "#541913", "#3E1457", "#160F47", "#540725", "#5E0855", "#400747", "#9D1A02", "#4A3A35", "#190780", "#240054", "#240333", "#2F0230", "#030A45", "#3B0209", "#2E021C", "#7649E6", "#AB44FC", "#D441F2", "#4644FC", "#416EF2" ],
 
@@ -296,7 +296,7 @@ function update(ts) {
 	let bg_color = window.discord_controller.bg_color;
 	let client_user = window.discord_controller.client_user;
 
-	let dt = ts - window.discord_controller.prev_ts;
+	let dt = (ts - window.discord_controller.prev_ts) / 1000;
 	window.discord_controller.prev_ts = ts;
 
 	let mouse_pressed = mouse_input.down && !mouse_input.was_down;

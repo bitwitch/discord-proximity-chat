@@ -25,9 +25,13 @@ function init_discord_controller() {
 	title.style.padding = "5px 0px 8px 0px";
 	header.appendChild(title);
 	let close_button = document.createElement("div");
-	close_button.innerHTML = "&#128473;"; // unicode cancellation x
-	close_button.style.padding = "5px";
-	close_button.style.cursor = "pointer";
+	close_button.style.cssText = "margin:5px 0px 8px;width:20px;height:20px;cursor:pointer;position:relative;";
+	let cross1 = document.createElement("div")
+	cross1.style.cssText = "width:20px;height:2px;background-color:black;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(45deg);";
+	let cross2 = document.createElement("div")
+	cross2.style.cssText = "width:20px;height:2px;background-color:black;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-45deg);";
+	close_button.appendChild(cross1);
+	close_button.appendChild(cross2);
 	header.appendChild(close_button);
 	let canvas = document.createElement("canvas");
 	canvas.id = "voice_user_positions";

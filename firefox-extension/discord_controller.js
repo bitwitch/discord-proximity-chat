@@ -284,6 +284,7 @@ function update(ts) {
 	let avatars = window.discord_controller.avatars;
 	let avatar_radius = window.discord_controller.avatar_radius;
 	let bg_color = window.discord_controller.bg_color;
+	let client_user = window.discord_controller.client_user;
 
 	let mouse_pressed = mouse_input.down && !mouse_input.was_down;
 	let mouse_released = !mouse_input.down && mouse_input.was_down;
@@ -292,7 +293,7 @@ function update(ts) {
 
 	// drag and drop avatars 
 	if (mouse_pressed) {
-		if (hovered_avatar) {
+		if (hovered_avatar && hovered_avatar == client_user.avatar) {
 			window.discord_controller.avatar_dragging = hovered_avatar;
 		}
 	} else if (mouse_released) {

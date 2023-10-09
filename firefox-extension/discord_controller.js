@@ -228,7 +228,7 @@ function adjust_single_user_volume(avatar) {
 	let client_user = window.discord_controller.client_user;
 	let silent_distance = window.discord_controller.silent_distance;
 	if (avatar && avatar.id != -1) {
-		let dist = distance(avatar.pos, client_user.avatar.pos);
+		let dist = distance(avatar.target_pos, client_user.avatar.target_pos);
 		let inverse_volume = dist / silent_distance;
 		if (inverse_volume > 1) inverse_volume = 1;
 		let volume = 1 - inverse_volume;
@@ -237,35 +237,34 @@ function adjust_single_user_volume(avatar) {
 }
 
 async function adjust_user_volumes() {
-	let avatar_dragging = window.discord_controller.avatar_dragging;
 	let client_user = window.discord_controller.client_user;
 	let avatars = window.discord_controller.avatars;
 	let silent_distance = window.discord_controller.silent_distance;
 
-	if (avatar_dragging && avatar_dragging == client_user.avatar) {
-		let message = { 
-			kind: "update_user_position", 
-			handle: client_user.websocket_handle, 
-			username: client_user.username, 
-			position: client_user.avatar.pos };
-		
-		browser.runtime.sendMessage(message)
-		.then(did_send => {
-			if (!did_send) {
-				console.log(`Failed to send position update websocket message: ${client_user.username} (${client_user.avatar.pos.x}, ${client_user.avatar.pos.y})`);
-			}
-		});
+	for (let avatar of avatars) {
+		if (avatar == client_user.avatar) continue;
+		if (avatar.id == -1) continue;
+		let dist = distance(avatar.target_pos, client_user.avatar.target_pos);
+		let inverse_volume = dist / silent_distance;
+		if (inverse_volume > 1) inverse_volume = 1;
+		let volume = 1 - inverse_volume;
+		await set_user_volume(avatar.id, volume);
+	}
+}
 
-		for (let avatar of avatars) {
-			if (avatar == client_user.avatar) continue;
-			if (avatar.id == -1) continue;
-			let dist = distance(avatar.pos, client_user.avatar.pos);
-			let inverse_volume = dist / silent_distance;
-			if (inverse_volume > 1) inverse_volume = 1;
-			let volume = 1 - inverse_volume;
-			await set_user_volume(avatar.id, volume);
+function send_position_update(user) {
+	let message = { 
+		kind: "update_user_position", 
+		handle: user.websocket_handle,
+		username: user.username,
+		position: user.avatar.pos };
+
+	browser.runtime.sendMessage(message)
+	.then(did_send => {
+		if (!did_send) {
+			console.log(`Failed to send position update websocket message: ${user.username} (${user.avatar.pos.x}, ${user.avatar.pos.y})`);
 		}
-	} 
+	});
 }
 
 function update_user_position(username, position) {
@@ -299,13 +298,18 @@ function update(ts) {
 
 	let hovered_avatar = get_hovered_avatar();
 
-	// drag and drop avatars 
+	// drag and drop avatar
 	if (mouse_pressed) {
 		if (hovered_avatar && hovered_avatar == client_user.avatar) {
 			window.discord_controller.avatar_dragging = hovered_avatar;
 		}
 	} else if (mouse_released) {
-		adjust_user_volumes();
+		let dragging_client_user_avatar = client_user.avatar && 
+			client_user.avatar == window.discord_controller.avatar_dragging;
+		if (dragging_client_user_avatar) {
+			send_position_update(client_user);
+			adjust_user_volumes();
+		}
 		window.discord_controller.avatar_dragging = null;
 	}
 

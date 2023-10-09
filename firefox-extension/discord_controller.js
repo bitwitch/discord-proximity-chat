@@ -279,6 +279,31 @@ function update_user_position(username, position) {
 	}
 }
 
+function draw_avatar(avatar) {
+	if (!avatar) return;
+
+	let ctx = window.discord_controller.ctx;
+	let avatar_radius = window.discord_controller.avatar_radius;
+
+	// create circular clip region
+	ctx.save();
+	ctx.beginPath();
+	ctx.arc(avatar.pos.x, avatar.pos.y, avatar_radius, 0, 2*Math.PI, true);
+	ctx.closePath();
+	ctx.clip();
+
+	// draw image in clip region
+	let image_x = avatar.pos.x - avatar_radius;
+	let image_y = avatar.pos.y - avatar_radius;
+	if (avatar.image_loaded) {
+		ctx.drawImage(avatar.image, image_x, image_y, 2*avatar_radius, 2*avatar_radius);
+	} else { 
+		ctx.fillStyle = avatar.color;
+		ctx.fill();
+	}
+
+	ctx.restore();
+}
 
 function update(ts) {
 	let move_rate = window.discord_controller.move_rate;
@@ -340,26 +365,13 @@ function update(ts) {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	for (let avatar of avatars) {
-		// create circular clip region
-		ctx.save();
-		ctx.beginPath();
-		ctx.arc(avatar.pos.x, avatar.pos.y, avatar_radius, 0, 2*Math.PI, true);
-		ctx.closePath();
-		ctx.clip();
-
-		// draw image in clip region
-		let image_x = avatar.pos.x - avatar_radius;
-		let image_y = avatar.pos.y - avatar_radius;
-		if (avatar.image_loaded) {
-			ctx.drawImage(avatar.image, image_x, image_y, 2*avatar_radius, 2*avatar_radius);
-		} else { 
-			ctx.fillStyle = avatar.color;
-			ctx.fill();
-			//ctx.drawImage(logo, image_x, image_y, 2*avatar_radius, 2*avatar_radius);
+		if (avatar != client_user.avatar) {
+			draw_avatar(avatar);
 		}
-
-		ctx.restore();
 	}
+
+	// always draw client user on top
+	draw_avatar(client_user.avatar);
 
 	if (hovered_avatar) {
 		let x = hovered_avatar.pos.x - avatar_radius;

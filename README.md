@@ -9,9 +9,7 @@ This was my entry to [Handmade Network's 2023 Wheel Reinvention Jam](https://han
 ### Shortcomings
 - Currently there is only a Firefox version of the extension.    
 - It relies on css selectors to locate DOM elements used to control users volumes. It appears that the class names of these elements are dynamically generated, so you may need to update these if they change. Look in `firefox-extension/discord_controller.js` and search for `voice_user_selector` and `slider_selector`.  
-- Volume changes and position update messages sent to the server only occur when you stop dragging your avatar, ideally these would happen while dragging with maybe some throttling  
 - Networking is done using websockets, which use TCP, making it not ideal for getting real-time updates of users positions. Ideally this would use WebRTC. My understanding is that this is the only option for real-time networking in the web.  
-- The websocket server does not send ping frames and receive pong frames to keep connections alive, so after some amount of time without receiving any messages the client will be disconnected.
 - The server doesn't know anything about discord channels, it just accepts all connections and broadcasts user position udpates to every connected client.  
 - The websocket server is just not good, I threw it together in desperation during the jam.  
 - This really shouldn't even be a browser extension. Ideally this could be a standalone application that uses structured communication with Discord. Then it would work with any Discord client, not just in browser. However, their [developer documentation](https://discord.com/developers/docs/topics/rpc) shows that while this is theoretically possible using RPC, this functionality is currently not available to developers.  
@@ -23,5 +21,4 @@ This was my entry to [Handmade Network's 2023 Wheel Reinvention Jam](https://han
 4. In the file browser, navigate to where you downloaded this repository and inside `firefox-extension` select `manifest.json`  
 
 ### Server
-As of 2023-10-01, I have rented a droplet and am running a websocket server there. I will not be leaving it up very long. It is likely not still active. You can easily run your own (just install go, build the package `websocket_server` in this repo, and run it). By default it is listening on port 3333, you can change this in `websocket_server.go`. Search for `websocket_server_url` in `firefox-extension/background_script.js` to change the server url. You can alternatively try out the local only version of the browser extension by checking out the tag `local-only-version`.  
-
+As of 2023-10-01, I have rented a droplet and am running a websocket server there. I will not be leaving it up very long. It is likely not still active. You can easily run your own (just install go, build the package `websocket_server` in this repo, and run it). By default it is listening on port 3333, you can change this by using the port command line argument, i.e. `-port 8099`. Search for `websocket_server_url` in `firefox-extension/background_script.js` to change the server urlin the browser extension. You can alternatively try out the local only version of the browser extension by checking out the tag `local-only-version`.  

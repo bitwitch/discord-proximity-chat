@@ -117,25 +117,6 @@ browser.browserAction.onClicked.addListener((tab) => {
 	.catch(console.error);
 });
 
-//async function reconnect() {
-	//let users;
-	//try {
-		//let save_data = await browser.storage.session.get("discord_proxchat_connected_users");
-		//if (!save_data) return;
-		//users = JSON.parse(save_data);
-	//} catch (err) {
-		//console.log("failed to parse user data from session storage: ", err);
-		//return;
-	//}
-
-	//console.log("users from session storage: ", users);
-
-	//websocket_connections = [];
-	//for (let user of users) {
-		//initialize_websocket(user.username, user.position);
-	//}
-//}
-
 browser.runtime.onMessage.addListener((message, sender, send_response) => {
 	if (message.kind === "initialize_websocket") {
 		let socket_handle = initialize_websocket(message.username, message.position);

@@ -83,7 +83,6 @@ function init_discord_controller() {
 			type: "click",
 		}),
 		voice_users: [],
-		connections: [],
 		client_user: {
 			username: "",
 			avatar: null,
@@ -107,7 +106,6 @@ function init_discord_controller() {
 		},
 		avatar_dragging: null,
 		next_x: avatar_radius + 10,
-		ready_to_send_messages: false,
 		prev_ts: performance.now(),
 		move_rate: 9,
 
@@ -426,6 +424,7 @@ async function set_user_volume(user_id, volume) {
 		init_discord_controller();
 	}
 
+	// display the proxchat window if it is hidden
 	window.discord_controller.prox_chat_window.style.display = "block";
 
 	window.discord_controller.next_x = window.discord_controller.avatar_radius + 10,

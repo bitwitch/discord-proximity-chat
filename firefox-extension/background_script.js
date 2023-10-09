@@ -46,7 +46,6 @@ function initialize_websocket(username, position) {
 
 	// Listen for messages
 	socket.addEventListener("message", (e) => {
-		console.log("Message from server ", e);
 		let server_message;
 		try {
 			server_message = JSON.parse(e.data);
@@ -54,8 +53,6 @@ function initialize_websocket(username, position) {
 			console.log("Failed to parse message from websocket server as json: ", err);
 			return;
 		}
-
-		console.log(server_message);
 
 		if (server_message.kind == message_kind_table["acknowledge"]) {
 			console.log("received acknowledgement from websocket server");

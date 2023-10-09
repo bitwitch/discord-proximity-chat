@@ -1,5 +1,5 @@
 function init_discord_controller() {
-	console.log("initializing discord controller");
+	//console.log("initializing discord controller");
 
 	window.discord_controller_initialized = true;
 
@@ -139,7 +139,7 @@ function init_discord_controller() {
 
 	browser.runtime.onMessage.addListener((message, sender, send_response) => {
 		if (message.kind === "server_updated_position") {
-			console.log(`Received server updated position: ${message.username} (${message.position.x}, ${message.position.y})`);
+			//console.log(`Received server updated position: ${message.username} (${message.position.x}, ${message.position.y})`);
 
 			let client_user = window.discord_controller.client_user;
 			if (client_user.username && client_user.username != message.username) {
@@ -484,12 +484,12 @@ async function set_user_volume(user_id, volume) {
 			client_user.avatar = avatar;
 			browser.runtime.sendMessage({kind: "initialize_websocket", username: username, position: avatar.pos})
 			.then(response => {
-				console.log("runtime message response: ", response);
+				//console.log("runtime message response: ", response);
 				client_user.websocket_handle = response;
 			});
 		}
 	}
 
-	console.log("made it to the end");
+	//console.log("made it to the end");
 })();
 

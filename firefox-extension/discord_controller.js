@@ -298,10 +298,10 @@ function update(ts) {
 
 	let hovered_avatar = get_hovered_avatar();
 
-	// drag and drop avatar
+	// drag and drop client user avatar
 	if (mouse_pressed) {
-		if (hovered_avatar && hovered_avatar == client_user.avatar) {
-			window.discord_controller.avatar_dragging = hovered_avatar;
+		if (distance(mouse_input.pos, client_user.avatar.pos) < avatar_radius) {
+			window.discord_controller.avatar_dragging = client_user.avatar;
 		}
 	} else if (mouse_released) {
 		let dragging_client_user_avatar = client_user.avatar && 

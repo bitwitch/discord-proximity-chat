@@ -83,7 +83,7 @@ function init_discord_controller() {
 			type: "click",
 		}),
 		voice_users: [],
-		client_user: {
+		local_user: {
 			username: "",
 			avatar: null,
 			websocket_handle: -1,
@@ -129,9 +129,9 @@ function init_discord_controller() {
 	});
 
 	close_button.addEventListener("click", function(e) {
-		let client_user = window.discord_controller.client_user;
-		if (client_user.websocket_handle != -1) {
-			let message = { kind: "close_websocket", handle: client_user.websocket_handle };
+		let local_user = window.discord_controller.local_user;
+		if (local_user.websocket_handle != -1) {
+			let message = { kind: "close_websocket", handle: local_user.websocket_handle };
 			browser.runtime.sendMessage(message)
 		}
 		prox_chat_window.style.display = "none";
@@ -141,8 +141,8 @@ function init_discord_controller() {
 		if (message.kind === "server_updated_position") {
 			//console.log(`Received server updated position: ${message.username} (${message.position.x}, ${message.position.y})`);
 
-			let client_user = window.discord_controller.client_user;
-			if (client_user.username && client_user.username != message.username) {
+			let local_user = window.discord_controller.local_user;
+			if (local_user.username && local_user.username != message.username) {
 				update_user_position(message.username, message.position);
 			}
 		} 
@@ -164,12 +164,12 @@ function pick_random_color() {
 	return colors[index];
 }
 
-function Avatar(id, username, image_url, x, y, is_client_user) {
+function Avatar(id, username, image_url, x, y, is_local_user) {
 	let image = new Image();
 	let avatar = {
 		"id": id,
 		"image_loaded": false,
-		"is_client_user": is_client_user,
+		"is_local_user": is_local_user,
 		"image": image,
 		"color": pick_random_color(),
 		"username": username,
@@ -225,10 +225,10 @@ function create_mouseup_event(clientX, clientY) {
 }
 
 function adjust_single_user_volume(avatar) {
-	let client_user = window.discord_controller.client_user;
+	let local_user = window.discord_controller.local_user;
 	let silent_distance = window.discord_controller.silent_distance;
 	if (avatar && avatar.id != -1) {
-		let dist = distance(avatar.target_pos, client_user.avatar.target_pos);
+		let dist = distance(avatar.target_pos, local_user.avatar.target_pos);
 		let inverse_volume = dist / silent_distance;
 		if (inverse_volume > 1) inverse_volume = 1;
 		let volume = 1 - inverse_volume;
@@ -237,14 +237,14 @@ function adjust_single_user_volume(avatar) {
 }
 
 async function adjust_user_volumes() {
-	let client_user = window.discord_controller.client_user;
+	let local_user = window.discord_controller.local_user;
 	let avatars = window.discord_controller.avatars;
 	let silent_distance = window.discord_controller.silent_distance;
 
 	for (let avatar of avatars) {
-		if (avatar == client_user.avatar) continue;
+		if (avatar == local_user.avatar) continue;
 		if (avatar.id == -1) continue;
-		let dist = distance(avatar.target_pos, client_user.avatar.target_pos);
+		let dist = distance(avatar.target_pos, local_user.avatar.target_pos);
 		let inverse_volume = dist / silent_distance;
 		if (inverse_volume > 1) inverse_volume = 1;
 		let volume = 1 - inverse_volume;
@@ -313,7 +313,7 @@ function update(ts) {
 	let avatars = window.discord_controller.avatars;
 	let avatar_radius = window.discord_controller.avatar_radius;
 	let bg_color = window.discord_controller.bg_color;
-	let client_user = window.discord_controller.client_user;
+	let local_user = window.discord_controller.local_user;
 
 	let dt = (ts - window.discord_controller.prev_ts) / 1000;
 	window.discord_controller.prev_ts = ts;
@@ -323,16 +323,16 @@ function update(ts) {
 
 	let hovered_avatar = get_hovered_avatar();
 
-	// drag and drop client user avatar
+	// drag and drop local user avatar
 	if (mouse_pressed) {
-		if (distance(mouse_input.pos, client_user.avatar.pos) < avatar_radius) {
-			window.discord_controller.avatar_dragging = client_user.avatar;
+		if (distance(mouse_input.pos, local_user.avatar.pos) < avatar_radius) {
+			window.discord_controller.avatar_dragging = local_user.avatar;
 		}
 	} else if (mouse_released) {
-		let dragging_client_user_avatar = client_user.avatar && 
-			client_user.avatar == window.discord_controller.avatar_dragging;
-		if (dragging_client_user_avatar) {
-			send_position_update(client_user);
+		let dragging_local_user_avatar = local_user.avatar && 
+			local_user.avatar == window.discord_controller.avatar_dragging;
+		if (dragging_local_user_avatar) {
+			send_position_update(local_user);
 			adjust_user_volumes();
 		}
 		window.discord_controller.avatar_dragging = null;
@@ -344,7 +344,7 @@ function update(ts) {
 		window.discord_controller.avatar_dragging.target_pos.x = mouse_input.pos.x;
 		window.discord_controller.avatar_dragging.target_pos.y = mouse_input.pos.y;
 
-		send_position_update(client_user);
+		send_position_update(local_user);
 		adjust_user_volumes();
 	}
 
@@ -368,13 +368,13 @@ function update(ts) {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 	for (let avatar of avatars) {
-		if (avatar != client_user.avatar) {
+		if (avatar != local_user.avatar) {
 			draw_avatar(avatar);
 		}
 	}
 
-	// always draw client user on top
-	draw_avatar(client_user.avatar);
+	// always draw local user on top
+	draw_avatar(local_user.avatar);
 
 	if (hovered_avatar) {
 		let x = hovered_avatar.pos.x - avatar_radius;
@@ -382,7 +382,7 @@ function update(ts) {
 		ctx.font = "12px monospace";
 		ctx.fillStyle = "black";
 		let name = hovered_avatar.username;
-		if (hovered_avatar.is_client_user) {
+		if (hovered_avatar.is_local_user) {
 			name += " (me)";
 		}
 		ctx.fillText(name, x, y);
@@ -450,7 +450,7 @@ async function set_user_volume(user_id, volume) {
 	window.discord_controller.voice_users = document.querySelectorAll(window.discord_controller.voice_user_selector);
 	window.discord_controller.avatars = [];
 
-	let client_user = window.discord_controller.client_user;
+	let local_user = window.discord_controller.local_user;
 	let avatar_radius = window.discord_controller.avatar_radius;
 	let voice_users = window.discord_controller.voice_users;
 	let avatars = window.discord_controller.avatars;
@@ -471,21 +471,21 @@ async function set_user_volume(user_id, volume) {
 		user.dispatchEvent(window.discord_controller.contextmenu_event);
 		let context_menu = await wait_for_element("#user-context");
 		let user_volume = document.getElementById("user-context-user-volume");
-		let is_client_user = !user_volume;
+		let is_local_user = !user_volume;
 		close_context_menu();
 
 		let x = window.discord_controller.next_x;
-		let avatar = Avatar(i, username, image_url, x, 30, is_client_user);
+		let avatar = Avatar(i, username, image_url, x, 30, is_local_user);
 		avatars.push(avatar);
 		window.discord_controller.next_x += 2*avatar_radius + 10;
 
-		if (is_client_user) {
-			client_user.username = username;
-			client_user.avatar = avatar;
+		if (is_local_user) {
+			local_user.username = username;
+			local_user.avatar = avatar;
 			browser.runtime.sendMessage({kind: "initialize_websocket", username: username, position: avatar.pos})
 			.then(response => {
 				//console.log("runtime message response: ", response);
-				client_user.websocket_handle = response;
+				local_user.websocket_handle = response;
 			});
 		}
 	}

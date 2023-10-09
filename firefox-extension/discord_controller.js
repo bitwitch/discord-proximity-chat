@@ -343,6 +343,9 @@ function update(ts) {
 		window.discord_controller.avatar_dragging.pos.y = mouse_input.pos.y;
 		window.discord_controller.avatar_dragging.target_pos.x = mouse_input.pos.x;
 		window.discord_controller.avatar_dragging.target_pos.y = mouse_input.pos.y;
+
+		send_position_update(client_user);
+		adjust_user_volumes();
 	}
 
 	// update positions

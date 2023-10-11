@@ -106,7 +106,10 @@ function close_websocket(handle) {
 }
 
 browser.browserAction.onClicked.addListener((tab) => {
-	// clear any stored connections
+	// close any stored connections
+	for (let i=0; i<websocket_connections.length; ++i) {
+		close_websocket(i);
+	}
 	websocket_connections = [];
 
 	browser.tabs.executeScript({file: "/discord_controller.js"})

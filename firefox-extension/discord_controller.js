@@ -135,6 +135,7 @@ function init_discord_controller() {
 		if (local_user.websocket_handle != -1) {
 			let message = { kind: "close_websocket", handle: local_user.websocket_handle };
 			browser.runtime.sendMessage(message)
+			local_user.websocket_handle = -1;
 		}
 		prox_chat_window.style.display = "none";
 	});
